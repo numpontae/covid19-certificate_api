@@ -23,28 +23,38 @@ class ctRoute {
 
 
 
-    // postPatientLabCovid19() {
-    //     return async (req : Request, res : Response) => {
-    //         let repos = di.get('sql')
-    //         let queryDelete = `DELETE PHR_Covid19_Certificate WHERE LabNumber = '${req.body.result[0].LabNumber}'`
-    //         await repos.query(queryDelete);
-    //         req.body.result.map(async(d:any)=> {
-    //             let queryInfo = `INSERT INTO PHR_Covid19_Certificate
-    //         (Dte_of_col, EPVIS_Age, EPVIS_RowId, EPVIS_Sex, EN, EPVIS_DateOfBirth, 
-    //         Gvn_nme, Sur_nme, Tme_of_Col, Tst_set, LabNumber, HN, VISTS_Dte_of_aut, VISTS_Tme_of_aut, 
-    //         VISTS_Usr_aut, VISTS_RowId, CTTS_Cde, CTTS_Nme, TST_DTA, VISTD_RowId, CTTC_Cde, CTTC_Des, 
-    //         CTTC_RowId, SSUSR_Nme, CTHOS_Cde, CTHOS_Nme, Usr_aut, LabResult)
-    //           VALUES('${d.Dte_of_col}', '${d.EPVIS_Age}', '${d.EPVIS_RowId}', '${d.EPVIS_Sex}', '${d.EN}', '${d.EPVIS_DateOfBirth}'
-    //           , '${d.Gvn_nme}', '${d.Sur_nme}', '${d.Tme_of_Col}', '${d.Tst_set}', '${d.LabNumber}', '${d.HN}', '${d.VISTS_Dte_of_aut}', '${d.VISTS_Tme_of_aut}'
-    //           , '${d.VISTS_Usr_aut}', '${d.VISTS_RowId}', '${d.CTTS_Cde}', '${d.CTTS_Nme}', '${d.TST_DTA}', '${d.VISTD_RowId}', '${d.CTTC_Cde}', '${d.CTTC_Des}'
-    //           , '${d.CTTC_RowId}', '${d.SSUSR_Nme}', '${d.CTHOS_Cde}', '${d.CTHOS_Nme}', '${d.Usr_aut}', '${d.LabResult}');
-    //           `
-    //             await repos.query(queryInfo);
-    //         })
-    //         res.send([])
+    postPatientLabCovid19() {
+        return async (req : Request, res : Response) => {
+            let repos = di.get('sql')
+            let queryDelete = `DELETE PHR_Covid19_Certificate WHERE LabNumber = '${req.body.result[0].LabNumber}'`
+            await repos.query(queryDelete);
+            req.body.result.map(async(d:any)=> {
+                let queryInfo = `INSERT INTO PHR_Covid19_Certificate
+            (Dte_of_col, EPVIS_Age, EPVIS_RowId, EPVIS_Sex, EN, EPVIS_DateOfBirth, 
+            Gvn_nme, Sur_nme, Tme_of_Col, Tst_set, LabNumber, HN, VISTS_Dte_of_aut, VISTS_Tme_of_aut, 
+            VISTS_Usr_aut, VISTS_RowId, CTTS_Cde, CTTS_Nme, TST_DTA, VISTD_RowId, CTTC_Cde, CTTC_Des, 
+            CTTC_RowId, SSUSR_Nme, CTHOS_Cde, CTHOS_Nme, Usr_aut, LabResult, DoctorName, Site)
+              VALUES('${d.Dte_of_col}', '${d.EPVIS_Age}', '${d.EPVIS_RowId}', '${d.EPVIS_Sex}', '${d.EN}', '${d.EPVIS_DateOfBirth}'
+              , '${d.Gvn_nme}', '${d.Sur_nme}', '${d.Tme_of_Col}', '${d.Tst_set}', '${d.LabNumber}', '${d.HN}', '${d.VISTS_Dte_of_aut}', '${d.VISTS_Tme_of_aut}'
+              , '${d.VISTS_Usr_aut}', '${d.VISTS_RowId}', '${d.CTTS_Cde}', '${d.CTTS_Nme}', '${d.TST_DTA}', '${d.VISTD_RowId}', '${d.CTTC_Cde}', '${d.CTTC_Des}'
+              , '${d.CTTC_RowId}', '${d.SSUSR_Nme}', '${d.CTHOS_Cde}', '${d.CTHOS_Nme}', '${d.Usr_aut}', '${d.LabResult}','${d.DoctorName}','${d.Site}');
+              `
+                await repos.query(queryInfo);
+            })
+            res.send([])
 
-    //     }
-    // }
+        }
+    }
+
+    getLabCovid19() {
+        return async (req : Request, res : Response) => {
+            let {labnumber} = req.query
+            let repos = di.get('sql')
+            let querySearch = `SELECT * FROM PHR_Covid19_Certificate WHERE LabNumber = '${labnumber}'`
+            let result = await repos.query(querySearch);
+            res.send(result.recordset)
+        }
+    }
 
     getPatientLabCovid19() {
         return async (req : Request, res : Response) => {
@@ -55,7 +65,6 @@ class ctRoute {
                 repos.reserve((err : any, connObj : any) => {
                     if (connObj) {
                         let conn = connObj.conn;
-
                         conn.createStatement((err : any, statement : any) => {
                             if (err) {
                                 reject(err);
@@ -64,15 +73,25 @@ class ctRoute {
                                     if (err) {
                                         reject(err);
                                     } else {
-
-
                                         const query = `select t1.*,t2.CTTCT_Text as LabResult from
                                         (select
-                                        EPVIS_DateOfCollection AS Dte_of_col,  EPVIS_Age, EPVIS_RowId, EPVIS_Species_DR AS EPVIS_Sex, EPVIS_HospitalEpisode AS EN, EPVIS_DateOfBirth , EPVIS_GivenName AS Gvn_nme,  EPVIS_Surname AS Sur_nme, EPVIS_TimeOfCollection AS Tme_of_Col,  EPVIS_TestSets AS Tst_set,  EPVIS_VisitNumber AS LabNumber, 
-                                        EPVIS_DebtorNumber_DR AS HN,  EP_VisitTestSet->VISTS_DateOfAuthorisation AS VISTS_Dte_of_aut,  EP_VisitTestSet->VISTS_TimeOfAuthorisation AS VISTS_Tme_of_aut,  
-                                        EP_VisitTestSet->VISTS_UserAuthorised_DR AS VISTS_Usr_aut, EP_VisitTestSet->VISTS_RowId, EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Code AS CTTS_Cde, EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Name AS CTTS_Nme,  EP_VisitTestSet->EP_VisitTestSetData->VISTD_TestData AS TST_DTA,    
-                                        EP_VisitTestSet->EP_VisitTestSetData->VISTD_RowId,   EP_VisitTestSet->EP_VisitTestSetData-> VISTD_TestCode_DR->CTTC_Code AS CTTC_Cde, EP_VisitTestSet->EP_VisitTestSetData-> VISTD_TestCode_DR->CTTC_Desc AS CTTC_Des, EP_VisitTestSet->EP_VisitTestSetData-> VISTD_TestCode_DR->CTTC_RowId, 
-                                        EPVIS_UserID_DR->SSUSR_Name AS SSUSR_Nme,  EPVIS_HospitalCode_DR->CTHOS_Code AS CTHOS_Cde, EPVIS_HospitalCode_DR->CTHOS_Name AS CTHOS_Nme,   EP_VisitTestSet->VISTS_UserAuthorised_DR->SSUSR_Name AS Usr_aut
+                                        EPVIS_DateOfCollection AS Dte_of_col,  EPVIS_Age, EPVIS_RowId, EPVIS_Species_DR AS EPVIS_Sex, 
+                                        case when right(left(EPVIS_HospitalEpisode,3),2) = '11' then 'SVH' else 'SNH' end as Site, 
+                                        EPVIS_HospitalEpisode AS EN, EPVIS_DateOfBirth , EPVIS_GivenName AS Gvn_nme,  EPVIS_Surname AS Sur_nme, 
+                                        EPVIS_TimeOfCollection AS Tme_of_Col,  EPVIS_TestSets AS Tst_set,  EPVIS_VisitNumber AS LabNumber, 
+                                        EPVIS_DebtorNumber_DR AS HN,  EP_VisitTestSet->VISTS_DateOfAuthorisation AS VISTS_Dte_of_aut,  
+                                        EP_VisitTestSet->VISTS_TimeOfAuthorisation AS VISTS_Tme_of_aut,  
+                                        EP_VisitTestSet->VISTS_UserAuthorised_DR AS VISTS_Usr_aut, EP_VisitTestSet->VISTS_RowId, 
+                                        EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Code AS CTTS_Cde, EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Name AS CTTS_Nme,  
+                                        EP_VisitTestSet->EP_VisitTestSetData->VISTD_TestData AS TST_DTA,    
+                                        EP_VisitTestSet->EP_VisitTestSetData->VISTD_RowId,   
+                                        EP_VisitTestSet->EP_VisitTestSetData-> VISTD_TestCode_DR->CTTC_Code AS CTTC_Cde, 
+                                        EP_VisitTestSet->EP_VisitTestSetData-> VISTD_TestCode_DR->CTTC_Desc AS CTTC_Des, 
+                                        EP_VisitTestSet->EP_VisitTestSetData-> VISTD_TestCode_DR->CTTC_RowId, 
+                                        EPVIS_UserID_DR->SSUSR_Name AS SSUSR_Nme,  EPVIS_HospitalCode_DR->CTHOS_Code AS CTHOS_Cde, 
+                                        EPVIS_HospitalCode_DR->CTHOS_Name AS CTHOS_Nme, 
+                                        EP_VisitTestSet->VISTS_UserAuthorised_DR->SSUSR_Name AS Usr_aut, 
+                                        EPVIS_DoctorCode_DR->CTDR_Surname DoctorName
                                         FROM EP_VisitNumber where EPVIS_VisitNumber = '${labnumber}') t1
                                         left join
                                         SQLUser.CT_TestCodeStandardComm t2
@@ -115,6 +134,9 @@ class ctRoute {
             await result.map((d:any)=> {
                 d.Dte_of_col = dateFormat(d.Dte_of_col, "dd mmm yyyy")
                 d.Tme_of_Col = convertHMS(d.Tme_of_Col)
+                d.EPVIS_DateOfBirth = dateFormat(d.EPVIS_DateOfBirth, "dd mmm yyyy")
+                d.VISTS_Dte_of_aut = dateFormat(d.VISTS_Dte_of_aut, "dd mmm yyyy")
+                d.VISTS_Tme_of_aut = convertHMS(d.VISTS_Tme_of_aut)
             })
 
             await Promise.all(result)
@@ -129,6 +151,7 @@ class ctRoute {
             //     console.log('1111')
             //   });
             delete axios.defaults.baseURL
+            // axios.post(`http://127.0.0.1:30020/api/v1/patient/postpatientlabcovid19`, body)
             axios.post(`https://phr.samitivejhospitals.com:3000/api/v1/patient/postpatientlabcovid19`, body)
             res.send(result)
             
@@ -155,5 +178,6 @@ const route = new ctRoute()
 
 router
 .get("/getpatientlabcovid19", route.getPatientLabCovid19())
+// .get("/getlabcovid19", route.getLabCovid19())
 // .post("/postpatientlabcovid19", route.postPatientLabCovid19())
 export const patient = router
