@@ -33,11 +33,13 @@ class ctRoute {
             (Dte_of_col, EPVIS_Age, EPVIS_RowId, EPVIS_Sex, EN, EPVIS_DateOfBirth, 
             Gvn_nme, Sur_nme, Tme_of_Col, Tst_set, LabNumber, HN, VISTS_Dte_of_aut, VISTS_Tme_of_aut, 
             VISTS_Usr_aut, VISTS_RowId, CTTS_Cde, CTTS_Nme, TST_DTA, VISTD_RowId, CTTC_Cde, CTTC_Des, 
-            CTTC_RowId, SSUSR_Nme, CTHOS_Cde, CTHOS_Nme, Usr_aut, LabResult, DoctorName, Site)
+            CTTC_RowId, SSUSR_Nme, CTHOS_Cde, CTHOS_Nme, Usr_aut, LabResult, DoctorName, Site
+            , Usr_report, report_date, report_time)
               VALUES('${d.Dte_of_col}', '${d.EPVIS_Age}', '${d.EPVIS_RowId}', '${d.EPVIS_Sex}', '${d.EN}', '${d.EPVIS_DateOfBirth}'
               , '${d.Gvn_nme}', '${d.Sur_nme}', '${d.Tme_of_Col}', '${d.Tst_set}', '${d.LabNumber}', '${d.HN}', '${d.VISTS_Dte_of_aut}', '${d.VISTS_Tme_of_aut}'
               , '${d.VISTS_Usr_aut}', '${d.VISTS_RowId}', '${d.CTTS_Cde}', '${d.CTTS_Nme}', '${d.TST_DTA}', '${d.VISTD_RowId}', '${d.CTTC_Cde}', '${d.CTTC_Des}'
-              , '${d.CTTC_RowId}', '${d.SSUSR_Nme}', '${d.CTHOS_Cde}', '${d.CTHOS_Nme}', '${d.Usr_aut}', '${d.LabResult}','${d.DoctorName}','${d.Site}');
+              , '${d.CTTC_RowId}', '${d.SSUSR_Nme}', '${d.CTHOS_Cde}', '${d.CTHOS_Nme}', '${d.Usr_aut}', '${d.LabResult}','${d.DoctorName}','${d.Site}'
+              '${d.Usr_report}', '${d.report_date}', '${d.report_time}');
               `
                 await repos.query(queryInfo);
             })
@@ -91,7 +93,10 @@ class ctRoute {
                                         EPVIS_UserID_DR->SSUSR_Name AS SSUSR_Nme,  EPVIS_HospitalCode_DR->CTHOS_Code AS CTHOS_Cde, 
                                         EPVIS_HospitalCode_DR->CTHOS_Name AS CTHOS_Nme, 
                                         EP_VisitTestSet->VISTS_UserAuthorised_DR->SSUSR_Name AS Usr_aut, 
-                                        EPVIS_DoctorCode_DR->CTDR_Surname DoctorName
+                                        EPVIS_DoctorCode_DR->CTDR_Surname DoctorName,
+                                        EP_VisitTestSet->VISTS_UserEntered_DR->SSUSR_Name as Usr_report,
+                                        EP_VisitTestSet->VISTS_DateOfEntry as report_date,
+                                        EP_VisitTestSet->VISTS_TimeOfEntry as report_time
                                         FROM EP_VisitNumber where EPVIS_VisitNumber = '${labnumber}') t1
                                         left join
                                         SQLUser.CT_TestCodeStandardComm t2
@@ -137,6 +142,8 @@ class ctRoute {
                 d.EPVIS_DateOfBirth = dateFormat(d.EPVIS_DateOfBirth, "dd mmm yyyy")
                 d.VISTS_Dte_of_aut = dateFormat(d.VISTS_Dte_of_aut, "dd mmm yyyy")
                 d.VISTS_Tme_of_aut = convertHMS(d.VISTS_Tme_of_aut)
+                d.report_date = dateFormat(d.report_date, "dd mmm yyyy")
+                d.report_time = convertHMS(d.report_time)
             })
 
             await Promise.all(result)
@@ -159,13 +166,13 @@ class ctRoute {
     }
 
 
-    test() {
-        return async (req : Request, res : Response) => {
-            let {identifier, otp, reference} = req.query
-            delete axios.defaults.baseURL
-            axios.get(`http://10.105.10.29:1881/verifypatientdata?national_id=1341400135163&passport=null`)
-        }
-    }
+    // test() {
+    //     return async (req : Request, res : Response) => {
+    //         let {identifier, otp, reference} = req.query
+    //         delete axios.defaults.baseURL
+    //         axios.get(`http://10.105.10.29:1881/verifypatientdata?national_id=1341400135163&passport=null`)
+    //     }
+    // }
 
     
 
@@ -178,6 +185,6 @@ const route = new ctRoute()
 
 router
 .get("/getpatientlabcovid19", route.getPatientLabCovid19())
-// .get("/getlabcovid19", route.getLabCovid19())
-// .post("/postpatientlabcovid19", route.postPatientLabCovid19())
+.get("/getlabcovid19", route.getLabCovid19())
+.post("/postpatientlabcovid19", route.postPatientLabCovid19())
 export const patient = router
