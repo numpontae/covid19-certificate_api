@@ -27,9 +27,9 @@ const JDBC = require("jdbc");
 //       trustServerCertificate: false // change to true for local dev / self-signed certs
 //     }
 // };
-sql.on('error', (err:any) => {
-  console.log(err.message)
-})
+// sql.on('error', (err:any) => {
+//   console.log(err.message)
+// })
 
 const app = express();
 const port = 30020;
