@@ -26,20 +26,32 @@ class ctRoute {
     postPatientLabCovid19() {
         return async (req : Request, res : Response) => {
             let repos = di.get('sql')
-            let queryDelete = `DELETE PHR_Covid19_Certificate WHERE LabNumber = '${req.body.result[0].LabNumber}'`
+            let queryDelete = `DELETE PHR_Covid19_Certificate WHERE LabNumber = '${req.body[0].LabNumber}'`
             await repos.query(queryDelete);
-            req.body.result.map(async(d:any)=> {
-                let queryInfo = `INSERT INTO PHR_Covid19_Certificate
-            (Dte_of_col, EPVIS_Age, EPVIS_RowId, EPVIS_Sex, EN, EPVIS_DateOfBirth, 
-            Gvn_nme, Sur_nme, Tme_of_Col, Tst_set, LabNumber, HN, VISTS_Dte_of_aut, VISTS_Tme_of_aut, 
-            VISTS_Usr_aut, VISTS_RowId, CTTS_Cde, CTTS_Nme, TST_DTA, VISTD_RowId, CTTC_Cde, CTTC_Des, 
-            CTTC_RowId, SSUSR_Nme, CTHOS_Cde, CTHOS_Nme, Usr_aut, LabResult, DoctorName, Site
+
+            let queryInfo = `INSERT INTO PHR_Covid19_Certificate
+            (Dte_of_col, EPVIS_Age, EPVIS_Sex, EN, EPVIS_DateOfBirth, 
+            Gvn_nme, Sur_nme, Tme_of_Col, LabNumber, HN, VISTS_Dte_of_aut, VISTS_Tme_of_aut, 
+            VISTS_Usr_aut, CTTS_Nme,
+            Usr_aut, DoctorName, Site
             , Usr_report, report_date, report_time)
-              VALUES('${d.Dte_of_col}', '${d.EPVIS_Age}', '${d.EPVIS_RowId}', '${d.EPVIS_Sex}', '${d.EN}', '${d.EPVIS_DateOfBirth}'
-              , '${d.Gvn_nme}', '${d.Sur_nme}', '${d.Tme_of_Col}', '${d.Tst_set}', '${d.LabNumber}', '${d.HN}', '${d.VISTS_Dte_of_aut}', '${d.VISTS_Tme_of_aut}'
-              , '${d.VISTS_Usr_aut}', '${d.VISTS_RowId}', '${d.CTTS_Cde}', '${d.CTTS_Nme}', '${d.TST_DTA}', '${d.VISTD_RowId}', '${d.CTTC_Cde}', '${d.CTTC_Des}'
-              , '${d.CTTC_RowId}', '${d.SSUSR_Nme}', '${d.CTHOS_Cde}', '${d.CTHOS_Nme}', '${d.Usr_aut}', '${d.LabResult}','${d.DoctorName}','${d.Site}'
-              '${d.Usr_report}', '${d.report_date}', '${d.report_time}');
+              VALUES('${req.body[0].Dte_of_col}', '${req.body[0].EPVIS_Age}', '${req.body[0].EPVIS_Sex}', 
+              '${req.body[0].EN}', '${req.body[0].EPVIS_DateOfBirth}'
+              , '${req.body[0].Gvn_nme}', '${req.body[0].Sur_nme}', '${req.body[0].Tme_of_Col}'
+              , '${req.body[0].LabNumber}', '${req.body[0].HN}', '${req.body[0].VISTS_Dte_of_aut}'
+              , '${req.body[0].VISTS_Tme_of_aut}', '${req.body[0].VISTS_Usr_aut}','${req.body[0].CTTS_Nme}'
+              , '${req.body[0].Usr_aut}', '${req.body[0].DoctorName}','${req.body[0].Site}'
+              , '${req.body[0].Usr_report}', '${req.body[0].report_date}', '${req.body[0].report_time}');
+              `
+            await repos.query(queryInfo);
+
+            queryDelete = `DELETE PHR_Covid19_Certificate_LabResult WHERE LabNumber = '${req.body[0].LabNumber}'`
+                await repos.query(queryDelete);
+            req.body.map(async(d:any)=> {
+                
+                let queryInfo = `INSERT INTO PHR_Covid19_Certificate_LabResult
+                (LabNumber, CTTC_Cde, CTTC_Des, LabResult)
+                VALUES('${d.LabNumber}','${d.CTTC_Cde}', '${d.CTTC_Des}', '${d.LabResult}')
               `
                 await repos.query(queryInfo);
             })
@@ -52,7 +64,8 @@ class ctRoute {
         return async (req : Request, res : Response) => {
             let {labnumber} = req.query
             let repos = di.get('sql')
-            let querySearch = `SELECT * FROM PHR_Covid19_Certificate WHERE LabNumber = '${labnumber}'`
+            let querySearch = `SELECT A.*, B.CTTC_Cde, B.CTTC_Des, B.LabResult FROM PHR_Covid19_Certificate A
+            INNER JOIN PHR_Covid19_Certificate_LabResult B ON A.LabNumber = B.LabNumber WHERE A.LabNumber = '${labnumber}'`
             let result = await repos.query(querySearch);
             res.send(result.recordset)
         }
@@ -147,9 +160,9 @@ class ctRoute {
             })
 
             await Promise.all(result)
-            let body = {
-                result
-            }
+            // let body = {
+            //     result
+            // }
             // let value = ["Testttttttt"]
             // repos = di.get('sql')
             // repos.query(`INSERT INTO PHR_Covid19_Certificate
@@ -157,9 +170,9 @@ class ctRoute {
             //     if (err) throw err;
             //     console.log('1111')
             //   });
-            delete axios.defaults.baseURL
+            // delete axios.defaults.baseURL
             // axios.post(`http://127.0.0.1:30020/api/v1/patient/postpatientlabcovid19`, body)
-            axios.post(`https://phr.samitivejhospitals.com:3000/api/v1/patient/postpatientlabcovid19`, body)
+            // axios.post(`https://phr.samitivejhospitals.com:3000/api/v1/patient/postpatientlabcovid19`, body)
             res.send(result)
             
         }
