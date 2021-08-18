@@ -178,6 +178,94 @@ class ctRoute {
         }
     }
 
+    postLogLabCovid19() {
+        return async (req : Request, res : Response) => {
+            let repos = di.get('cache')
+
+            let result: any = await new Promise((resolve, reject) => {
+                repos.reserve((err : any, connObj : any) => {
+                    if (connObj) {
+                        let conn = connObj.conn;
+                        conn.createStatement((err : any, statement : any) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                statement.setFetchSize(100, function (err : any) {
+                                    if (err) {
+                                        reject(err);
+                                    } else {
+                                        const query = `select * from SS_User where SSUSR_RowId = '${req.body[0].UserID}'`;
+                                        statement.executeQuery(query, function (err : any, resultset : any) {
+                                            if (err) {
+                                                reject(err);
+                                            } else {
+                                                resultset.toObjArray(function (err : any, results : any) {
+                                                    resolve(results);
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                        repos.release(connObj, function (err : any) {
+                            if (err) {
+                                console.log(err);
+                            }
+                        });
+                    }
+                });
+            });
+            await Promise.all(result)
+            repos = di.get('repos')
+            let log = {
+                UserID: req.body[0].UserID,
+                UserName: result.length > 0 ? result[0].SSUSR_Name : null,
+                Dte_of_col: req.body[0].Dte_of_col,
+                EPVIS_Age: req.body[0].EPVIS_Age,
+                EPVIS_RowId: req.body[0].EPVIS_RowId,
+                EPVIS_Sex: req.body[0].EPVIS_Sex,
+                Site: req.body[0].Site,
+                EN: req.body[0].EN,
+                EPVIS_DateOfBirth: req.body[0].EPVIS_DateOfBirth,
+                Gvn_nme: req.body[0].Gvn_nme,
+                Sur_nme: req.body[0].Sur_nme,
+                Tme_of_Col: req.body[0].Tme_of_Col,
+                Tst_set: req.body[0].Tst_set,
+                LabNumber: req.body[0].LabNumber,
+                HN: req.body[0].HN,
+                VISTS_Dte_of_aut: req.body[0].VISTS_Dte_of_aut,
+                VISTS_Tme_of_aut: req.body[0].VISTS_Tme_of_aut,
+                VISTS_Usr_aut: req.body[0].VISTS_Usr_aut,
+                VISTS_RowId: req.body[0].VISTS_RowId,
+                CTTS_Cde: req.body[0].CTTS_Cde,
+                CTTS_Nme: req.body[0].CTTS_Nme,
+                TST_DTA: req.body[0].TST_DTA,
+                VISTD_RowId: req.body[0].VISTD_RowId,
+                SSUSR_Nme: req.body[0].SSUSR_Nme,
+                CTHOS_Cde: req.body[0].CTHOS_Cde,
+                CTHOS_Nme: req.body[0].CTHOS_Nme,
+                Usr_aut: req.body[0].Usr_aut,
+                DoctorName: req.body[0].DoctorName,
+                Usr_report: req.body[0].Usr_report,
+                report_date: req.body[0].report_date,
+                report_time: req.body[0].report_time}
+            let queryInfo = `INSERT INTO PHR_Covid19_Certificate_Log.PHR_Covid19_Certificate_Log SET ?`
+                let insert = await repos.query(queryInfo, log);
+                req.body.map(async(d:any)=> {
+                let body = {
+                    LogID : insert.insertId ,
+                    CTTC_Cde : d.CTTC_Cde,
+                    CTTC_Des : d.CTTC_Des,
+                    LabResult : d.LabResult}
+                let queryInfo = `INSERT INTO PHR_Covid19_Certificate_Log.PHR_Covid19_Certificate_LabResult_Log SET ?`
+                await repos.query(queryInfo, body);
+            })
+            res.send([])
+
+        }
+    }
+
 
     // test() {
     //     return async (req : Request, res : Response) => {
@@ -200,4 +288,5 @@ router
 .get("/getpatientlabcovid19", route.getPatientLabCovid19())
 .get("/getlabcovid19", route.getLabCovid19())
 .post("/postpatientlabcovid19", route.postPatientLabCovid19())
+.post("/postloglabcovid19", route.postLogLabCovid19())
 export const patient = router

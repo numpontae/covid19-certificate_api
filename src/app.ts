@@ -62,14 +62,14 @@ const prodlab: any = {
   maxpoolsize: 20,
   maxidle: 20*60*1000,
 };
-// const registerConfig: any = {
-//   user: preRegister.USER,
-//   password: preRegister.PASSWORD,
-//   host: preRegister.HOST,
-//   port: preRegister.PORT,
-//   connectionLimit : 10,
-//   debug: false
-// };
+const registerConfig: any = {
+  user: preRegister.USER,
+  password: preRegister.PASSWORD,
+  host: preRegister.HOST,
+  port: preRegister.PORT,
+  connectionLimit : 10,
+  debug: false
+};
 // const rpaConfig: any = {
 //   user: rpa.USER,
 //   password: rpa.PASSWORD,
@@ -95,6 +95,13 @@ let prodlabdb = new JDBC(prodlab);
 
 app.listen(port, async () => {
   console.log(`server start with port ${port}`);
+  const pool = await mysql.createPool(registerConfig);
+  pool.getConnection();
+  pool.query('SELECT 1', function (error: any, results: any, fields: any) {
+    if (error) throw error;
+    console.log(`mysql connected`);
+    di.set('repos', pool);
+  });
   // const poolsql = await sql.connect(config)
   //   await poolsql.request().query('SELECT 1', function (error: any, results: any, fields: any) {
   //       if (error) 
