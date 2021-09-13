@@ -71,6 +71,91 @@ class ctRoute {
         }
     }
 
+    getPatientLabList() {
+        return async (req : Request, res : Response) => {
+            let {hn, orderstartdate} = req.query
+            let repos = di.get('repos')
+            repos = di.get("prodlab");
+            let orderstartdatecondition = ''
+            if (!_.isEmpty(orderstartdate))
+            {
+                orderstartdatecondition = ` and EPVIS_DateOfCollection = '${orderstartdate}'`
+            }
+            let result: any = await new Promise((resolve, reject) => {
+                repos.reserve((err : any, connObj : any) => {
+                    if (connObj) {
+                        let conn = connObj.conn;
+                        conn.createStatement((err : any, statement : any) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                statement.setFetchSize(100, function (err : any) {
+                                    if (err) {
+                                        reject(err);
+                                    } else {
+                                        const query = `select top 5 * from (select distinct EPVIS_DateOfCollection AS Dte_of_col,EPVIS_VisitNumber AS LabNumber, EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Code AS CTTS_Cde, 
+                                            EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Name AS CTTS_Nme, EPVIS_TimeOfCollection AS Tme_of_Col 
+                                            FROM EP_VisitNumber where EPVIS_DebtorNumber_DR = '${hn}' ${orderstartdatecondition})
+                                            order by Dte_of_col desc`;
+                                        statement.executeQuery(query, function (err : any, resultset : any) {
+                                            if (err) {
+                                                reject(err);
+                                            } else {
+                                                resultset.toObjArray(function (err : any, results : any) {
+                                                    resolve(results);
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                        repos.release(connObj, function (err : any) {
+                            if (err) {
+                                console.log(err);
+                            }
+                        });
+                    }
+                });
+                
+            });
+
+            var dateFormat = require("dateformat");
+            function convertHMS(value:any) {
+                let sec = parseInt(value, 10); // convert value to number if it's string
+                sec = sec * 60
+                let hours:any   = Math.floor(sec / 3600); // get hours
+                let minutes:any = Math.floor((sec - (hours * 3600)) / 60); // get minutes
+                // add 0 if value < 10; Example: 2 => 02
+                if (hours   < 10) {hours   = "0"+hours;}
+                if (minutes < 10) {minutes = "0"+minutes;}
+                return hours+':'+minutes; // Return is HH : MM : SS
+            }
+
+            await result.map((d:any)=> {
+                d.Dte_of_col = dateFormat(d.Dte_of_col, "dd mmm yyyy")
+                d.Tme_of_Col = convertHMS(d.Tme_of_Col)
+            })
+
+            await Promise.all(result)
+            // let body = {
+            //     result
+            // }
+            // let value = ["Testttttttt"]
+            // repos = di.get('sql')
+            // repos.query(`INSERT INTO PHR_Covid19_Certificate
+            // (Lastname) VALUES ('Testttt') `,[value], (err:any, result:any, fields:any) => {
+            //     if (err) throw err;
+            //     console.log('1111')
+            //   });
+            // delete axios.defaults.baseURL
+            // axios.post(`http://127.0.0.1:30020/api/v1/patient/postpatientlabcovid19`, body)
+            // axios.post(`https://phr.samitivejhospitals.com:3000/api/v1/patient/postpatientlabcovid19`, body)
+            res.send(result)
+            
+        }
+    }
+
     getPatientLabCovid19() {
         return async (req : Request, res : Response) => {
             let {labnumber} = req.query
@@ -249,7 +334,8 @@ class ctRoute {
                 DoctorName: req.body[0].DoctorName,
                 Usr_report: req.body[0].Usr_report,
                 report_date: req.body[0].report_date,
-                report_time: req.body[0].report_time}
+                report_time: req.body[0].report_time,
+                Location: req.body[0].Location}
             let queryInfo = `INSERT INTO PHR_Covid19_Certificate_Log.PHR_Covid19_Certificate_Log SET ?`
                 let insert = await repos.query(queryInfo, log);
                 req.body.map(async(d:any)=> {
@@ -289,4 +375,5 @@ router
 .get("/getlabcovid19", route.getLabCovid19())
 .post("/postpatientlabcovid19", route.postPatientLabCovid19())
 .post("/postloglabcovid19", route.postLogLabCovid19())
+.get("/getpatientlablist", route.getPatientLabList())
 export const patient = router

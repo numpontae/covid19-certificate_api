@@ -7,29 +7,29 @@ import { di } from "./di";
 import { Routes } from './routes';
 const jinst = require("jdbc/lib/jinst");
 const JDBC = require("jdbc");
-// const sql = require('mssql')
+const sql = require('mssql')
 
-// const config: any = {
-//   server: 'vaccine-db.database.windows.net',
-//   port: 1433,
-//   user: 'svnh-vaccine',
-//   password: 'S@m1t1vej',
-//   database: 'phr-db',
-//   connectionTimeout: 5000,
-//   pool: {
-//       max:50,
-//       min:0,
-//       idleTimeoutMillis: 5000
-//   },
-//   options: {
-//       enableArithAbort: true,
-//       encrypt: true, // for azure
-//       trustServerCertificate: false // change to true for local dev / self-signed certs
-//     }
-// };
-// sql.on('error', (err:any) => {
-//   console.log(err.message)
-// })
+const config: any = {
+  server: 'vaccine-db.database.windows.net',
+  port: 1433,
+  user: 'svnh-vaccine',
+  password: 'S@m1t1vej',
+  database: 'phr-db',
+  connectionTimeout: 5000,
+  pool: {
+      max:50,
+      min:0,
+      idleTimeoutMillis: 5000
+  },
+  options: {
+      enableArithAbort: true,
+      encrypt: true, // for azure
+      trustServerCertificate: false // change to true for local dev / self-signed certs
+    }
+};
+sql.on('error', (err:any) => {
+  console.log(err.message)
+})
 
 const app = express();
 const port = 30020;
