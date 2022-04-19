@@ -20,7 +20,7 @@ COPY . ./
 RUN npm install -g
 
 
-RUN npm install cron 
+RUN npm install jdbc -g 
 
 RUN npm install pm2 -g
 

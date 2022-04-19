@@ -7,6 +7,7 @@ moment.tz.setDefault('Asia/Bangkok');
 import axios from 'axios'
 import {neo4jSetting} from "../config/config";
 
+
 class ctRoute {
     Capitalize = (s : any) => {
         if (typeof s !== 'string') 
@@ -77,9 +78,11 @@ class ctRoute {
             let repos = di.get('repos')
             repos = di.get("prodlab");
             let orderstartdatecondition = ''
+            let top = 'top 10'
             if (!_.isEmpty(orderstartdate))
             {
-                orderstartdatecondition = ` and EPVIS_DateOfCollection = '${orderstartdate}'`
+                orderstartdatecondition = ` and EPVIS_DateOfCollection between DATEADD(day,-2,'${orderstartdate}') and DATEADD(day,2,'${orderstartdate}')`
+                top = ''
             }
             let result: any = await new Promise((resolve, reject) => {
                 repos.reserve((err : any, connObj : any) => {
@@ -93,7 +96,7 @@ class ctRoute {
                                     if (err) {
                                         reject(err);
                                     } else {
-                                        const query = `select top 5 * from (select distinct EPVIS_DateOfCollection AS Dte_of_col,EPVIS_VisitNumber AS LabNumber, EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Code AS CTTS_Cde, 
+                                        const query = `select ${top} * from (select distinct EPVIS_DateOfCollection AS Dte_of_col,EPVIS_VisitNumber AS LabNumber, EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Code AS CTTS_Cde, 
                                             EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Name AS CTTS_Nme, EPVIS_TimeOfCollection AS Tme_of_Col 
                                             FROM EP_VisitNumber where EPVIS_DebtorNumber_DR = '${hn}' ${orderstartdatecondition})
                                             order by Dte_of_col desc`;
@@ -184,6 +187,7 @@ class ctRoute {
                                         EP_VisitTestSet->VISTS_UserAuthorised_DR AS VISTS_Usr_aut, EP_VisitTestSet->VISTS_RowId, 
                                         EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Code AS CTTS_Cde, EP_VisitTestSet->VISTS_TestSet_DR->CTTS_Name AS CTTS_Nme,  
                                         EP_VisitTestSet->EP_VisitTestSetData->VISTD_TestData AS TST_DTA,    
+                                        EP_VisitTestSet->EP_VisitTestSetData->VISTD_Comments as Comment,
                                         EP_VisitTestSet->EP_VisitTestSetData->VISTD_RowId,   
                                         EP_VisitTestSet->EP_VisitTestSetData-> VISTD_TestCode_DR->CTTC_Code AS CTTC_Cde, 
                                         EP_VisitTestSet->EP_VisitTestSetData-> VISTD_TestCode_DR->CTTC_Desc AS CTTC_Des, 
@@ -220,8 +224,8 @@ class ctRoute {
                     }
                 });
             });
+            console.log(result)
             var dateFormat = require("dateformat");
-            
 
             function convertHMS(value:any) {
                 let sec = parseInt(value, 10); // convert value to number if it's string
@@ -233,8 +237,114 @@ class ctRoute {
                 if (minutes < 10) {minutes = "0"+minutes;}
                 return hours+':'+minutes; // Return is HH : MM : SS
             }
+            let NationalID:any = null
+            let Passport:any = null
+            if(result.length > 0)
+            {
+                let repos = di.get('cache')
+
+            let info: any = await new Promise((resolve, reject) => {
+                repos.reserve((err : any, connObj : any) => {
+                    if (connObj) {
+                        let conn = connObj.conn;
+                        conn.createStatement((err : any, statement : any) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                statement.setFetchSize(100, function (err : any) {
+                                    if (err) {
+                                        reject(err);
+                                    } else {
+                                        const query = `select case when exists (select
+                                            MRG_PAPMI_To_DR->PAPMI_No
+                                           from
+                                            SQLUser.PA_MergePatient
+                                           where
+                                            MRG_PAPMI_From_DR = (
+                                            select
+                                             PAPMI_RowId
+                                            from
+                                             SQLUser.PA_PatMas
+                                            where
+                                             PAPMI_No = '${result[0].HN}')) then (select
+                                            MRG_PAPMI_To_DR->PAPMI_ID
+                                           from
+                                            SQLUser.PA_MergePatient
+                                           where
+                                            MRG_PAPMI_From_DR = (
+                                            select
+                                             PAPMI_RowId
+                                            from
+                                             SQLUser.PA_PatMas
+                                            where
+                                             PAPMI_No = '${result[0].HN}'))
+                                           else PAPER_ID
+                                           end "PAPER_ID"
+                                           , case when exists (select
+                                            MRG_PAPMI_To_DR->PAPMI_No
+                                           from
+                                            SQLUser.PA_MergePatient
+                                           where
+                                            MRG_PAPMI_From_DR = (
+                                            select
+                                             PAPMI_RowId
+                                            from
+                                             SQLUser.PA_PatMas
+                                            where
+                                             PAPMI_No = '${result[0].HN}')) then (select
+                                            MRG_PAPMI_To_DR->PAPMI_PAPER_DR->PAPER_PassportNumber 
+                                           from
+                                            SQLUser.PA_MergePatient
+                                           where
+                                            MRG_PAPMI_From_DR = (
+                                            select
+                                             PAPMI_RowId
+                                            from
+                                             SQLUser.PA_PatMas
+                                            where
+                                             PAPMI_No = '${result[0].HN}'))
+                                           else PAPER_PassportNumber
+                                           end "PAPER_PassportNumber" FROM PA_PatMas
+                                                                                   INNER JOIN PA_Person ON PA_PatMas.PAPMI_PAPER_DR = PA_Person.PAPER_RowId 
+                                                                                   WHERE PAPMI_NO = '${result[0].HN}'`;
+                                        // const query = `SELECT PAPER_ID, PAPER_PassportNumber FROM PA_PatMas
+                                        // INNER JOIN PA_Person ON PA_PatMas.PAPMI_PAPER_DR = PA_Person.PAPER_RowId 
+                                        // WHERE PAPMI_NO = '${result[0].HN}'`;
+                                        statement.executeQuery(query, function (err : any, resultset : any) {
+                                            if (err) {
+                                                reject(err);
+                                            } else {
+                                                resultset.toObjArray(function (err : any, results : any) {
+                                                    resolve(results);
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                        repos.release(connObj, function (err : any) {
+                            if (err) {
+                                console.log(err);
+                            }
+                        });
+                    }
+                });
+            });
+            if(info.length>0)
+            {
+                NationalID = info[0].PAPER_ID
+                Passport = info[0].PAPER_PassportNumber
+            }
+            }
 
             await result.map((d:any)=> {
+
+            
+                
+                
+                d.NationalID = NationalID
+                d.Passport = Passport
                 d.Dte_of_col = dateFormat(d.Dte_of_col, "dd mmm yyyy")
                 d.Tme_of_Col = convertHMS(d.Tme_of_Col)
                 d.EPVIS_DateOfBirth = dateFormat(d.EPVIS_DateOfBirth, "dd mmm yyyy")
@@ -242,9 +352,45 @@ class ctRoute {
                 d.VISTS_Tme_of_aut = convertHMS(d.VISTS_Tme_of_aut)
                 d.report_date = dateFormat(d.report_date, "dd mmm yyyy")
                 d.report_time = convertHMS(d.report_time)
+                if(d.LabResult == null)
+                {
+                    d.LabResult = d.TST_DTA != null? d.TST_DTA : d.Comment
+                }
+                // if(d.CTTC_Cde == "M4383" && d.CTTC_Des == "Remark")
+                // {
+                //     d.LabResult = d.TST_DTA != null? d.TST_DTA : d.Comment
+                // }
+                // if(d.CTTC_Cde == "M4384" && d.CTTC_Des == "Orf1ab(Ct)")
+                // {
+                //     d.LabResult = d.TST_DTA != null? d.TST_DTA : d.Comment
+                // }
+                // if(d.CTTC_Cde == "M4385" && d.CTTC_Des == "N gene(Ct)")
+                // {
+                //     d.LabResult = d.TST_DTA != null? d.TST_DTA : d.Comment
+                // }
+
+                delete d.Comment
+                // Test
+                // d.Gvn_nme = 'TestLab'
+                // d.Sur_nme = '20211113'
+                // d.EPVIS_Sex = 'Test-Sex'
+                // d.EPVIS_Age = 200
+                // d.EPVIS_DateOfBirth = '01 Jan 1800'
+                // d.HN = 'HN-Test-01'
+                // d.LabNumber = 'Lab-Test-20211113'
+                // d.DoctorName = 'Test-Doctor-Name'
+                // d.Dte_of_col = '01 Jan 2021'
+                // d.Tme_of_Col = '12:00'
+                // d.Usr_report = 'Test-Usr-Rpt,MT-Test-01'
+                // d.report_date = '01 Jan 2021'
+                // d.report_time = '12:30'
+                // d.Usr_aut = 'Test-Usr-Auth,MT-Test-02'
+                // d.VISTS_Dte_of_aut = '01 Jan 2021'
+                // d.VISTS_Tme_of_aut = '13:00'
             })
 
             await Promise.all(result)
+            // console.log(result)
             // let body = {
             //     result
             // }
