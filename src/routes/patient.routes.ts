@@ -224,7 +224,6 @@ class ctRoute {
                     }
                 });
             });
-            console.log(result)
             var dateFormat = require("dateformat");
 
             function convertHMS(value:any) {
